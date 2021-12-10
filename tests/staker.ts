@@ -52,6 +52,10 @@ const airdrop = async(provider:anchor.Provider, receipt: PublicKey, lamports: nu
   await getSolBalance(provider, receipt);
 }
 
+const createProgramAssociateAccount = async(owner: PublicKey, programId: PublicKey) => {
+  return (await anchor.web3.PublicKey.findProgramAddress([owner.toBuffer(), programId.toBuffer()], programId))[0];    
+}
+
 describe('staker', async () => {
   // Configure the client to use the local cluster.  
   const provider = anchor.Provider.env();
@@ -181,7 +185,7 @@ describe('staker', async () => {
     console.log("Vault usdc balance: ", await getTokenBalance(vault,provider));
   })
 
-  it.only('Token associate account', async () => {
+  it('Token associate account', async () => {
     // Random usdc account for Alice
     let acc1 = await createMintUserAccount(usdc, alice.publicKey);
     let acc2 = await createMintUserAccount(usdc, alice.publicKey);
@@ -203,6 +207,15 @@ describe('staker', async () => {
     // But we can get or create the associate account
     let acc3 = await usdc.getOrCreateAssociatedAccountInfo(alice.publicKey);
     assert.ok(!acc2.equals(acc3.address));
+  })
+
+  it.only('Generate associate account for our own program and user', async() => {
+    let acc1 = await createProgramAssociateAccount(alice.publicKey, program.programId);
+    let acc2 = await createProgramAssociateAccount(alice.publicKey, program.programId);
+
+    assert.ok(acc1.equals(acc2));
+
+    console.log("Program associated account: ", acc1.toBase58());
   })
 });
 
