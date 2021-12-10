@@ -125,26 +125,25 @@ describe('staker', async () => {
   });
 
   it('Should fail if deposit without signer', async () => {
-    try {
-      await program.rpc.deposit(new anchor.BN(amount), {
-        accounts: {
-          pool: pool.publicKey,
-          mint: usdc.publicKey,
-          vault,
-          // programSigner,
-          userMintAcc: aliceUSDCAccount,
-          userAuthority: alice.publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
-        },
-        // signers: [alice],
-      })
-      
-      assert.ok(false);
-    } catch (err) {
-      assert.ok(true);
-      console.log("error code",err)
-    }
+    await assert.rejects(
+      async() => {
+        await program.rpc.deposit(new anchor.BN(amount), {
+          accounts: {
+            pool: pool.publicKey,
+            mint: usdc.publicKey,
+            vault,
+            userMintAcc: aliceUSDCAccount,
+            userAuthority: alice.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
+          },
+        })  
+      },
+      (err) => {
+        console.log(err);
+        return true;
+      }
+    )
   })
 
   it('Should deposit', async () => {
@@ -168,45 +167,52 @@ describe('staker', async () => {
   })
 
   it('Should fail if withdraw without signer', async () => {
-    try {
-      await program.rpc.withdraw(new anchor.BN(amount), {
-        accounts: {
-          pool: pool.publicKey,
-          mint: usdc.publicKey,
-          vault,
-          programSigner,
-          userMintAcc: aliceUSDCAccount,
-          userAuthority: alice.publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
-        },
-        signers: [],
-      })
-      assert.ok(false);
-    } catch (error) {
-      assert.ok(true);
-    }
+    await assert.rejects(
+      async() => {
+        await program.rpc.withdraw(new anchor.BN(amount), {
+          accounts: {
+            pool: pool.publicKey,
+            mint: usdc.publicKey,
+            vault,
+            programSigner,
+            userMintAcc: aliceUSDCAccount,
+            userAuthority: alice.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
+          },
+          signers: [],
+        })  
+      },
+      (err) => {
+        console.log(err);
+        return true;
+      }
+    )
   })
 
   it('Should fail if withdraw with invalid signer', async () => {
-    try {
-      await program.rpc.withdraw(new anchor.BN(amount), {
-        accounts: {
-          pool: pool.publicKey,
-          mint: usdc.publicKey,
-          vault,
-          programSigner,
-          userMintAcc: aliceUSDCAccount,
-          userAuthority: alice.publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
-        },
-        signers: [bob],
-      })
-      assert.ok(false);
-    } catch (error) {
-      assert.ok(true);
-    }
+    await assert.rejects(
+      async() => {
+        await program.rpc.withdraw(new anchor.BN(amount), {
+          accounts: {
+            pool: pool.publicKey,
+            mint: usdc.publicKey,
+            vault,
+            programSigner,
+            userMintAcc: aliceUSDCAccount,
+            userAuthority: alice.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
+          },
+          signers: [bob],
+        })  
+      },
+      (err) => {
+        console.log(err);
+        return true;
+      }
+    )
+
   })
 
   it('Should withdraw', async () => {
