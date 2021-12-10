@@ -10,8 +10,16 @@ pub mod staker {
     pub fn initialize_pool(ctx: Context<InitializePool>, nonce: u8) -> ProgramResult {
         let pool = &mut ctx.accounts.pool;
 
-        pool.mint = ctx.accounts.vault.mint;
+        pool.mint = *ctx.accounts.mint.key;
         pool.vault = *ctx.accounts.vault.to_account_info().key;
+        if ctx.accounts.vault.mint !=  pool.mint {
+            return Err(PoolError::InvalidVaultAccount.into());
+        }
+
+        if ctx.accounts.vault.owner != *ctx.accounts.program_signer.key {
+            return Err(PoolError::InvalidVaultAccount.into());
+        }
+
         pool.program_signer = *ctx.accounts.program_signer.key;
         pool.nonce = nonce;
 
@@ -136,6 +144,7 @@ pub struct Withdraw<'info> {
         seeds = [pool.to_account_info().key.as_ref()],
         bump = pool.nonce,
     )]
+    #[account("*program_signer.key == pool.program_signer")]
     program_signer: AccountInfo<'info>,
 
     #[account(mut, "user_mint_acc.owner == *user_authority.key && user_mint_acc.mint == *mint.key")]
@@ -180,5 +189,7 @@ pub enum PoolError {
     #[msg("Invalid withdraw amount.")]
     InvalidWithdrawAmount,
     #[msg("Invalid withdraw user.")]
-    InvalidWithdrawUser
+    InvalidWithdrawUser,
+    #[msg("Invalid vault account.")]
+    InvalidVaultAccount
 }
