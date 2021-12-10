@@ -165,6 +165,27 @@ describe('staker', async () => {
     console.log("Vault usdc balance: ", await getTokenBalance(vault,provider));
   })
 
+  it('Should fail if withdraw without signer', async () => {
+    try {
+      await program.rpc.withdraw(new anchor.BN(amount), {
+        accounts: {
+          pool: pool.publicKey,
+          mint: usdc.publicKey,
+          vault,
+          programSigner,
+          userMintAcc: aliceUSDCAccount,
+          userAuthority: alice.publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
+        },
+        signers: [],
+      })
+      assert.ok(false);
+    } catch (error) {
+      assert.ok(true);
+    }
+  })
+
   it('Should withdraw', async () => {
     const tx = await program.rpc.withdraw(new anchor.BN(amount), {
       accounts: {
@@ -209,7 +230,7 @@ describe('staker', async () => {
     assert.ok(!acc2.equals(acc3.address));
   })
 
-  it.only('Generate associate account for our own program and user', async() => {
+  it('Generate associate account for our own program and user', async() => {
     let acc1 = await createProgramAssociateAccount(alice.publicKey, program.programId);
     let acc2 = await createProgramAssociateAccount(alice.publicKey, program.programId);
 

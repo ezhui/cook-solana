@@ -58,6 +58,10 @@ pub mod staker {
             return Err(PoolError::InvalidWithdrawAmount.into());
         }
 
+        if !ctx.accounts.user_authority.key.eq(&pool.user) {
+            return Err(PoolError::InvalidWithdrawUser.into());
+        }
+
         // Transfer usdc from vault to user account
         let seeds = &[
             ctx.accounts.pool.to_account_info().key.as_ref(),
@@ -172,5 +176,7 @@ pub enum PoolError {
     #[msg("Miss user signature.")]
     MissUserSignature,
     #[msg("Invalid withdraw amount.")]
-    InvalidWithdrawAmount
+    InvalidWithdrawAmount,
+    #[msg("Invalid withdraw user.")]
+    InvalidWithdrawUser
 }
