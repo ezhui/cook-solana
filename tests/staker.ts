@@ -69,6 +69,7 @@ describe('staker', async () => {
 
   const usdcOwner = Keypair.generate();
   const alice = Keypair.generate();
+  const bob = Keypair.generate();
   const pool = Keypair.generate();
   const program = anchor.workspace.Staker as Program<Staker>;
 
@@ -78,6 +79,7 @@ describe('staker', async () => {
       setTimeout(async () => {
         await airdrop(provider, usdcOwner.publicKey, 10000000000);
         await airdrop(provider, alice.publicKey, 10000000000);
+        await airdrop(provider, bob.publicKey, 10000000000);
     
         usdc = await createMint(provider, usdcOwner);
     
@@ -179,6 +181,27 @@ describe('staker', async () => {
           clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
         },
         signers: [],
+      })
+      assert.ok(false);
+    } catch (error) {
+      assert.ok(true);
+    }
+  })
+
+  it('Should fail if withdraw with invalid signer', async () => {
+    try {
+      await program.rpc.withdraw(new anchor.BN(amount), {
+        accounts: {
+          pool: pool.publicKey,
+          mint: usdc.publicKey,
+          vault,
+          programSigner,
+          userMintAcc: aliceUSDCAccount,
+          userAuthority: alice.publicKey,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY
+        },
+        signers: [bob],
       })
       assert.ok(false);
     } catch (error) {
