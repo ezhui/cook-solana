@@ -20,8 +20,12 @@ const createMint = async (provider:anchor.Provider, authority: Keypair) : Promis
   );
 }
 
-const createMintUserAccount = async(mint: Token, userPublicKey: PublicKey): Promise<PublicKey> => {
-  return  await mint.createAccount(userPublicKey);
+const createMintUserAccount = async(mint: Token, owner: PublicKey): Promise<PublicKey> => {
+  return  await mint.createAccount(owner);
+}
+
+const createMintAssociateAccount = async(mint: Token, owner: PublicKey): Promise<PublicKey> => {
+  return  await mint.createAssociatedTokenAccount(owner);
 }
 
 const getTokenBalance = async (pubkey: PublicKey, provider:anchor.Provider) => {
@@ -177,5 +181,28 @@ describe('staker', async () => {
     console.log("Vault usdc balance: ", await getTokenBalance(vault,provider));
   })
 
+  it.only('Token associate account', async () => {
+    // Random usdc account for Alice
+    let acc1 = await createMintUserAccount(usdc, alice.publicKey);
+    let acc2 = await createMintUserAccount(usdc, alice.publicKey);
+    console.log("Acc 1", acc1.toBase58())
+    console.log("Acc 2", acc2.toBase58())
+
+    assert.ok(!acc1.equals(acc2));
+
+    // Deterministic usdc account for Alice
+    acc1 = await usdc.createAssociatedTokenAccount(alice.publicKey);
+    try {
+      // Associate account can't be created twice
+      acc2 = await usdc.createAssociatedTokenAccount(alice.publicKey);
+      assert.ok(false);
+    } catch (error) {
+      assert.ok(true);
+    }
+
+    // But we can get or create the associate account
+    let acc3 = await usdc.getOrCreateAssociatedAccountInfo(alice.publicKey);
+    assert.ok(!acc2.equals(acc3.address));
+  })
 });
 
