@@ -95,6 +95,8 @@ pub struct InitializePool<'info> {
     pub mint: AccountInfo<'info>,
 
     #[account("vault.owner == *program_signer.key")]
+    #[account("vault.mint == *mint.key")]
+    #[account("&vault.owner == &Pubkey::find_program_address(&[&pool.to_account_info().key.to_bytes()], &program_id).0")]
     pub vault: Account<'info, TokenAccount>,
     pub program_signer: AccountInfo<'info>
 }
