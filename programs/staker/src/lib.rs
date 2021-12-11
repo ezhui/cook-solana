@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, TokenAccount, Transfer, MintTo};
+use anchor_spl::token::{self, TokenAccount, Transfer};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -94,6 +94,14 @@ pub mod staker {
 
         Ok(())
     }
+
+    pub fn initialize_associate_account(ctx: Context<InitializeAssociateAccount>) -> ProgramResult {
+        // if ctx.accounts.associate_account.owner.key() != ctx.accounts.owner.key() {
+        //     return Err(PoolError::InvalidAssociateAccountOwner.into());
+        // }
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -176,6 +184,18 @@ pub struct Pool {
     pub amount: u64
 }
 
+#[derive(Accounts)]
+pub struct InitializeAssociateAccount<'info> {
+    // #[account(zero)]
+    pub associate_account: Account<'info, OpenOrder>,
+
+    // #[account(signer)]
+    pub owner: AccountInfo<'info>
+}
+
+#[account]
+pub struct OpenOrder{}
+
 #[error]
 pub enum PoolError {
     #[msg("Invalid pool account.")]
@@ -191,5 +211,7 @@ pub enum PoolError {
     #[msg("Invalid withdraw user.")]
     InvalidWithdrawUser,
     #[msg("Invalid vault account.")]
-    InvalidVaultAccount
+    InvalidVaultAccount,
+    #[msg("Invalid associate account owner.")]
+    InvalidAssociateAccountOwner    
 }

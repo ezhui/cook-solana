@@ -5,7 +5,10 @@ import { Staker } from '../target/types/staker';
 import { 
   PublicKey, 
   Keypair, 
-  LAMPORTS_PER_SOL,     
+  LAMPORTS_PER_SOL, 
+  SystemProgram,
+  Transaction,
+  sendAndConfirmRawTransaction
 } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 
@@ -52,9 +55,31 @@ const airdrop = async(provider:anchor.Provider, receipt: PublicKey, lamports: nu
   await getSolBalance(provider, receipt);
 }
 
-const createProgramAssociateAccount = async(owner: PublicKey, programId: PublicKey) => {
-  return (await anchor.web3.PublicKey.findProgramAddress([owner.toBuffer(), programId.toBuffer()], programId))[0];    
+const createProgramAssociateAccount = async(seed: PublicKey, programId: PublicKey) => {
+  return (await anchor.web3.PublicKey.findProgramAddress([seed.toBuffer(), programId.toBuffer()], programId))[0];    
 }
+
+const signTransactions = async ({
+  transactionsAndSigners,
+  wallet,
+  connection,
+}) => {
+  const blockhash = (await connection.getRecentBlockhash("max")).blockhash;
+  transactionsAndSigners.forEach(({ transaction, signers = [] }) => {
+    transaction.recentBlockhash = blockhash;
+    transaction.setSigners(
+      wallet.publicKey,
+      ...signers.map((s) => s.publicKey)
+    );
+    if (signers?.length > 0) {
+      transaction.partialSign(...signers);
+    }
+  });
+  return await wallet.signAllTransactions(
+    transactionsAndSigners.map(({ transaction }) => transaction)
+  );
+}
+
 
 describe('staker', async () => {
   // Configure the client to use the local cluster.  
@@ -111,7 +136,7 @@ describe('staker', async () => {
       accounts: {
         pool: pool.publicKey,
         mint: usdc.publicKey,
-        vault: vault,
+        vault,
         programSigner
       },
       signers: [pool],
@@ -259,13 +284,67 @@ describe('staker', async () => {
     assert.ok(!acc2.equals(acc3.address));
   })
 
-  it('Generate associate account for our own program and user', async() => {
+  it.skip('Generate associate account for our own program and user', async() => {
     let acc1 = await createProgramAssociateAccount(alice.publicKey, program.programId);
     let acc2 = await createProgramAssociateAccount(alice.publicKey, program.programId);
 
     assert.ok(acc1.equals(acc2));
 
     console.log("Program associated account: ", acc1.toBase58());
+  })
+
+  it.skip('Initialize program  account', async() => {
+    // let owner = provider.wallet.publicKey;
+    let owner = alice.publicKey;
+    let associateAccount = await createProgramAssociateAccount(owner, program.programId);
+
+    // console.log(associateAccount.toBase58(), owner.toBase58());
+
+    // let tx = new Transaction()
+    // tx.add(
+    //   SystemProgram.createAccount({
+    //     fromPubkey: owner,
+    //     newAccountPubkey: associateAccount,
+    //     lamports: await provider.connection.getMinimumBalanceForRentExemption(165),
+    //     space: 165,
+    //     programId: program.programId
+    //   })        
+    // );
+
+    // const signedTransactions = await signTransactions({
+    //   transactionsAndSigners: [
+    //     { transaction: tx, signers: [] },
+    //   ],
+    //   wallet: provider.wallet,
+    //   connection: provider.connection,
+    // });
+
+    // for (let signedTransaction of signedTransactions) {
+    //   await sendAndConfirmRawTransaction(
+    //     provider.connection,
+    //     signedTransaction.serialize()
+    //   );
+    // }
+
+    const tx = await program.rpc.initializeAssociateAccount({
+      accounts: {
+        associateAccount,
+        owner,
+      },
+      signers: [alice],
+      preInstructions: [
+        SystemProgram.createAccount({
+          fromPubkey: owner,
+          newAccountPubkey: associateAccount,
+          lamports: await provider.connection.getMinimumBalanceForRentExemption(165),
+          space: 165,
+          programId: program.programId
+        })
+        // await program.account.openOrder.createInstruction(alice, 4096)  // size can be overridden
+      ]
+    });
+
+    console.log("Initialize transaction signature", tx);
   })
 });
 
