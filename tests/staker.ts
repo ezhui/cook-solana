@@ -99,9 +99,7 @@ describe('staker', async () => {
   const program = anchor.workspace.Staker as Program<Staker>;
 
   const amount = 50;
-  before(() => {
-    return new Promise((resolve) => {
-      setTimeout(async () => {
+  before(async () => {
         await airdrop(provider, usdcOwner.publicKey, 10000000000);
         await airdrop(provider, alice.publicKey, 10000000000);
         await airdrop(provider, bob.publicKey, 10000000000);
@@ -122,9 +120,6 @@ describe('staker', async () => {
         await usdc.mintTo(aliceUSDCAccount, usdcOwner, [], amount);
 
         console.log("Alice usdc balance: ", await getTokenBalance(aliceUSDCAccount,provider));
-        resolve(1);
-      }, 1);
-    });
   });
 
   it('Initialize pool state', async () => {
