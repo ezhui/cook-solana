@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, TokenAccount, Transfer};
+use std::cell::RefMut;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -99,6 +100,28 @@ pub mod staker {
         // if ctx.accounts.associate_account.owner.key() != ctx.accounts.owner.key() {
         //     return Err(PoolError::InvalidAssociateAccountOwner.into());
         // }
+
+        Ok(())
+    }
+
+    pub fn write_account_unsafe(ctx: Context<InitializeAccountUnsafe>, magic: u64) -> ProgramResult {
+        let order_acc = ctx.accounts.order.to_account_info();
+
+        let order_ptr = match order_acc.try_borrow_mut_data() {
+            Ok(p) => RefMut::map(p, |data| *data).as_mut_ptr(),
+            Err(_) => return Err(PoolError::InvalidOrderAccount.into()),
+        };
+
+        let order_hdr =  match unsafe { order_ptr.cast::<OrderHeader>().as_mut() } {
+            Some(v) => v,
+            None => return Err(PoolError::InvalidOrderAccount.into()),
+        };
+
+        order_hdr.magic = magic;
+
+        if magic == 0x55 {
+            return Err(PoolError::InvalidOrderAccount.into())
+        }
 
         Ok(())
     }
@@ -213,5 +236,20 @@ pub enum PoolError {
     #[msg("Invalid vault account.")]
     InvalidVaultAccount,
     #[msg("Invalid associate account owner.")]
-    InvalidAssociateAccountOwner    
+    InvalidAssociateAccountOwner,
+    #[msg("Invalid associate account owner.")]
+    InvalidOrderAccount  
+      
+}
+
+#[derive(Accounts)]
+pub struct InitializeAccountUnsafe<'info> {
+    #[account(mut)]
+    pub order: AccountInfo<'info>,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct OrderHeader {
+    magic: u64,
 }

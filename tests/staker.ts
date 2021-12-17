@@ -11,6 +11,8 @@ import {
   sendAndConfirmRawTransaction
 } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
+import * as BufferLayout from 'buffer-layout';
+import * as Layout from './utils/layout';
 
 const createMint = async (provider:anchor.Provider, authority: Keypair) : Promise<Token> => {
   return await Token.createMint(
@@ -80,6 +82,9 @@ const signTransactions = async ({
   );
 }
 
+const OrderHeaderLayout = BufferLayout.struct([
+  Layout.uint64('magic'),
+]);
 
 describe('staker', async () => {
   // Configure the client to use the local cluster.  
@@ -340,6 +345,58 @@ describe('staker', async () => {
     });
 
     console.log("Initialize transaction signature", tx);
+  })
+
+  it.only('Initialize account unsafe', async() => {
+    let order = Keypair.generate();
+
+    const tx = new Transaction();
+
+    tx.add(
+      SystemProgram.createAccount({
+        fromPubkey: provider.wallet.publicKey,
+        newAccountPubkey: order.publicKey,
+        lamports: await provider.connection.getMinimumBalanceForRentExemption(8),
+        space: 8,
+        programId: program.programId
+      })        
+    );
+
+    await provider.send(tx, [order]);
+
+    try {
+      await program.rpc.writeAccountUnsafe(new anchor.BN(0x12345678), {
+        accounts: {
+          order: order.publicKey,
+        },
+      });        
+    } catch (error) {
+      
+    }
+
+    let orderAcc = await provider.connection.getAccountInfo(order.publicKey);
+    assert.ok(orderAcc !== null)
+    assert.ok(orderAcc.owner.equals(program.programId))
+    let orderData = Buffer.from(orderAcc.data);
+    let orderHeader = OrderHeaderLayout.decode(orderData);
+
+    console.log(orderHeader);
+
+    try {
+      await program.rpc.writeAccountUnsafe(new anchor.BN(0x55), {
+        accounts: {
+          order: order.publicKey,
+        },
+      });        
+    } catch (error) {
+      
+    }
+
+    orderAcc = await provider.connection.getAccountInfo(order.publicKey);
+    orderData = Buffer.from(orderAcc.data);
+    orderHeader = OrderHeaderLayout.decode(orderData);
+
+    console.log(orderHeader);
   })
 });
 
